@@ -1,0 +1,45 @@
+.bookings-container {
+  max-width: var(--max-width-content);
+  margin: 20px auto;
+  padding: 0 20px;
+}
+
+.bookings-table {
+  width: 80%;
+  min-width: 400px;
+  max-width: 700px;
+  margin: 0 auto;
+  border-collapse: collapse;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .05);
+  background: var(--color-white);
+  border-radius: var(--radius-medium);
+  overflow: hidden;
+  font-size: 15px;
+  height: 300px;
+}
+
+.bookings-table thead { text-align: left; }
+
+.bookings-table th,
+.bookings-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: middle;
+}
+
+.bookings-table td a { margin: 0 5px; }
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* Si prefieres badges locales en lugar de base.css, descomenta: */
+/*
+.badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:12px}
+.badge.accepted{background:#e6ffed;color:#1a7f37;border:1px solid #c8f0d0}
+.badge.pending{background:#fff7e6;color:#8a6d3b;border:1px solid #f5e1b5}
+*/
