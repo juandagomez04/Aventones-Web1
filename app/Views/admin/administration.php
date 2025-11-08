@@ -1,9 +1,59 @@
+<?php
+// Attempt to include AdminActions from known relative locations to avoid path issues on different environments
+$possible = [
+    dirname(__DIR__, 2) . '/Application/Services/Admin/AdminActions.php', // app/Application/...
+    dirname(__DIR__, 3) . '/Application/Services/Admin/AdminActions.php', // project_root/Application/...
+];
+
+$included = false;
+foreach ($possible as $file) {
+    if (file_exists($file)) {
+        require_once $file;
+        $included = true;
+        break;
+    }
+}
+
+if (!$included) {
+    // Fallback to original path attempt and provide a clear error if not found
+    $attempt = __DIR__ . '/../../../Application/Services/Admin/AdminActions.php';
+    if (file_exists($attempt)) {
+        require_once $attempt;
+    } else {
+        throw new RuntimeException("AdminActions.php not found. Tried: " . implode(', ', $possible) . ', ' . $attempt);
+    }
+}
+
+// Crear admin
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create') {
+    try {
+        AdminActions::createAdmin($_POST, $_FILES['photo'] ?? null);
+        $msg = "✅ Admin created successfully!";
+    } catch (Throwable $e) {
+        $msg = "❌ Error: " . $e->getMessage();
+    }
+}
+
+// Eliminar admin
+if (($_POST['action'] ?? '') === 'delete') {
+    if (!AdminActions::deleteAdmin((int)$_POST['id'])) {
+        $msg = 'You cannot delete the first (seed) admin or leave the system without admins.';
+        $msgType = 'danger';
+    } else {
+        $msg = '🗑️ Admin deleted successfully!';
+        $msgType = 'success';
+    }
+}
+
+
+// Cargar admins
+$admins = AdminActions::getAdmins();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
     <title>AVENTONES - ADMINISTRATION</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../../public/assets/css/base.css">
@@ -12,238 +62,118 @@
 
 <body>
 
-    <!-- Header -->
     <header class="header">
         <img src="../../../public/assets/img/Icono.png" alt="Logo" class="logo">
         <h1 class="title">AVENTONES</h1>
     </header>
 
-    <!-- Nav -->
+    <!-- Navigation bar -->
     <div class="menu-container">
         <div class="menu">
-            <nav class="left-menu">
-                <a href="../rides/searchrides.php">Home</a>
-                <a href="../myrides/myrides.php">Rides</a>
-                <a href="../bookings/bookings.php">Bookings</a>
-                <a href="../admin/admin.php" class="active">Admin</a>
-            </nav>
+            
 
-            <div class="center-search">
-                <input type="text" placeholder="Search..." class="search-bar" aria-label="Search">
-            </div>
-
+            <!-- Right user menu with dropdown -->
             <div class="right-menu">
                 <div class="user-btn">
                     <img src="../../../public/assets/img/avatar.png" alt="User" class="user-icon">
                     <div class="dropdown-menu">
-                        <a href="../auth/login.php">Logout</a>
+                        <a href="index.php">Logout</a>
+                        <a href="../profile/configuration.php">Settings</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <hr>
-
-    <!-- Main -->
     <main class="admin-wrap">
-
         <h2 class="subtitle">Administration</h2>
 
-        <!-- Quick actions -->
+        <?php if (!empty($msg)): ?>
+            <p class="alert"><?= htmlspecialchars($msg) ?></p>
+        <?php endif; ?>
+
         <div class="admin-actions">
-            <a href="#create-admin" class="btn primary">Create Admin User</a>
-            <form class="inline" action="../admin/users_export.php" method="get">
-                <button type="submit" class="btn soft">Export CSV</button>
-            </form>
+            <a href="#create-admin" class="btn primary">Create Admin</a>
         </div>
 
-        <!-- Filters -->
-        <form class="filters" action="../admin/users.php" method="get">
-            <div class="field">
-                <label for="q">Search</label>
-                <input id="q" name="q" type="text" placeholder="Name, email, ID…">
-            </div>
-
-            <div class="field">
-                <label for="role">Role</label>
-                <select id="role" name="role">
-                    <option value="">All</option>
-                    <option value="admin">Admin</option>
-                    <option value="driver">Driver</option>
-                    <option value="passenger">Passenger</option>
-                </select>
-            </div>
-
-            <div class="field">
-                <label for="status">Status</label>
-                <select id="status" name="status">
-                    <option value="">All</option>
-                    <option value="active">Active</option>
-                    <option value="pending">Pending</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-
-            <div class="field actions">
-                <button type="submit" class="btn primary">Filter</button>
-                <a href="../admin/admin.php" class="btn ghost">Clear</a>
-            </div>
-        </form>
-
-        <!-- Users table -->
+        <!-- Tabla de admins -->
         <div class="table-card">
-            <div class="table-head">
-                <strong>Users</strong>
-                <!-- bulk action -->
-                <form class="inline" action="../admin/users_bulk.php" method="post">
-                    <input type="hidden" name="action" value="deactivate">
-                    <button type="submit" class="btn danger soft">Deactivate selected</button>
-                </form>
-            </div>
-
-            <form action="../admin/users_bulk.php" method="post">
-                <input type="hidden" name="action" value="bulk">
-                <table class="users-table">
-                    <thead>
+            <strong class="table-head">Admins</strong>
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($admins as $a): ?>
                         <tr>
-                            <th><input type="checkbox"
-                                    onclick="document.querySelectorAll('.check').forEach(c=>c.checked=this.checked)">
-                            </th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th class="text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Ejemplo; reemplaza con loop PHP -->
-                        <tr>
-                            <td><input type="checkbox" class="check" name="ids[]" value="1"></td>
-                            <td>Juanda Gómez</td>
-                            <td>juanda@example.com</td>
-                            <td><span class="badge role admin">Admin</span></td>
-                            <td><span class="badge status active">Active</span></td>
-                            <td>2025-10-30</td>
-                            <td class="text-right actions">
-                                <form action="../admin/users_status.php" method="post" class="inline">
-                                    <input type="hidden" name="id" value="1">
-                                    <input type="hidden" name="status" value="inactive">
-                                    <button class="link warn" type="submit">Deactivate</button>
-                                </form>
-                                <a class="link" href="../admin/user_edit.php?id=1">Edit</a>
-                                <form action="../admin/users_reset_password.php" method="post" class="inline">
-                                    <input type="hidden" name="id" value="1">
-                                    <button class="link soft" type="submit">Reset password</button>
+                            <td><?= $a['id'] ?></td>
+                            <td><?= htmlspecialchars($a['first_name'] . ' ' . $a['last_name']) ?></td>
+                            <td><?= htmlspecialchars($a['email']) ?></td>
+                            <td><?= htmlspecialchars($a['status']) ?></td>
+                            <td><?= htmlspecialchars(substr($a['created_at'], 0, 10)) ?></td>
+                            <td>
+                                <form method="post" onsubmit="return confirm('Delete this admin?')">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?= $a['id'] ?>">
+                                    <button class="btn btn-danger btn-sm">Delete</button>
                                 </form>
                             </td>
                         </tr>
-
-                        <tr>
-                            <td><input type="checkbox" class="check" name="ids[]" value="2"></td>
-                            <td>Pepe Guardiola</td>
-                            <td>Pepe@example.com</td>
-                            <td><span class="badge role driver">Driver</span></td>
-                            <td><span class="badge status pending">Pending</span></td>
-                            <td>2025-10-28</td>
-                            <td class="text-right actions">
-                                <form action="../admin/users_status.php" method="post" class="inline">
-                                    <input type="hidden" name="id" value="2">
-                                    <input type="hidden" name="status" value="active">
-                                    <button class="link ok" type="submit">Activate</button>
-                                </form>
-                                <form action="../admin/users_role.php" method="post" class="inline">
-                                    <input type="hidden" name="id" value="2">
-                                    <input type="hidden" name="role" value="admin">
-                                    <button class="link" type="submit">Make admin</button>
-                                </form>
-                            </td>
-                        </tr>
-
-                    </tbody>
-                </table>
-            </form>
-
-            <!-- paginación simple -->
-            <div class="pagination">
-                <a href="?page=1" class="page current">1</a>
-                <a href="?page=2" class="page">2</a>
-                <a href="?page=3" class="page">3</a>
-                <a href="?page=2" class="page next">Next »</a>
-            </div>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
 
-        <!-- Create Admin panel -->
+        <!-- Crear admin -->
         <section id="create-admin" class="panel">
-            <h3>Create Admin User</h3>
-            <form action="../admin/users_create.php" method="post" enctype="multipart/form-data" class="create-form">
-                <div class="grid">
-                    <div class="field">
-                        <label for="first_name">First name</label>
-                        <input type="text" id="first_name" name="first_name" required>
+            <h3>Create Admin</h3>
+            <form method="post" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="create">
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label>First Name</label>
+                        <input name="first_name" class="form-control" required>
                     </div>
-                    <div class="field">
-                        <label for="last_name">Last name</label>
-                        <input type="text" id="last_name" name="last_name" required>
+                    <div class="col-md-6">
+                        <label>Last Name</label>
+                        <input name="last_name" class="form-control" required>
                     </div>
-                    <div class="field">
-                        <label for="photo">Photo</label>
-                        <input type="file" id="photo" name="photo" accept="image/*">
-                    </div>
-                    <div class="field">
-                        <label for="national_id">National ID</label>
-                        <input type="text" id="national_id" name="national_id" required>
-                    </div>
-                    <div class="field">
-                        <label for="birth_date">Birth date</label>
-                        <input type="date" id="birth_date" name="birth_date" required>
-                    </div>
-                    <div class="field">
-                        <label for="phone">Phone</label>
-                        <input type="tel" id="phone" name="phone" required>
-                    </div>
-                    <div class="field">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="field">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" minlength="6" required>
-                    </div>
-                    <div class="field">
-                        <label for="password2">Repeat password</label>
-                        <input type="password" id="password2" name="password2" minlength="6" required>
-                    </div>
-                    <input type="hidden" name="role" value="admin">
-                    <input type="hidden" name="status" value="active">
                 </div>
 
-                <div class="buttons">
-                    <a href="#top" class="btn ghost">Cancel</a>
-                    <button type="submit" class="btn primary">Save</button>
-                </div>
+                <label>Email</label>
+                <input name="email" type="email" class="form-control" required>
+
+                <label>Password</label>
+                <input name="password" type="password" class="form-control" minlength="6" required>
+
+                <label>Repeat Password</label>
+                <input name="password2" type="password" class="form-control" minlength="6" required>
+
+                <label>National ID</label>
+                <input name="national_id" class="form-control">
+
+                <label>Birth Date</label>
+                <input name="birth_date" type="date" class="form-control">
+
+                <label>Phone</label>
+                <input name="phone" class="form-control">
+
+                <label>Photo</label>
+                <input name="photo" type="file" accept="image/*" class="form-control">
+
+                <button type="submit" class="btn btn-primary mt-3">Create Admin</button>
             </form>
-            <p class="hint">El administrador creado podrá gestionar estados (Active / Pending / Inactive) y roles de
-                todos los usuarios.</p>
         </section>
-
     </main>
 
-    <!-- Footer -->
-    <footer>
-        <hr>
-        <nav>
-            <a href="../rides/searchrides.php">Home</a> |
-            <a href="../myrides/myrides.php">Rides</a> |
-            <a href="../bookings/bookings.php">Bookings</a> |
-            <a href="../profile/configuration.php">Settings</a> |
-            <a href="../../index.php">Login</a> |
-            <a href="../auth/register.php">Register</a>
-        </nav>
-        <p>&copy; Aventones.com</p>
-    </footer>
 </body>
 
 </html>

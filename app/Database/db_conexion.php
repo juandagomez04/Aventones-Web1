@@ -1,0 +1,19 @@
+<?php
+// ==============================================
+// Archivo: db_conexion.php
+// Descripción: Conexión general a la base de datos Aventones
+// ==============================================
+
+$host = "localhost";
+$dbname = "aventones";       // Nombre exacto de tu BD
+$username = "root";          // Usuario de phpMyAdmin
+$password = "";              // Contraseña (si tienes una, agrégala aquí)
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    // Configura el modo de errores de PDO para excepciones
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("❌ Error de conexión: " . $e->getMessage());
+}
+?>
