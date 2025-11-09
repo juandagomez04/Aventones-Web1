@@ -221,25 +221,18 @@
   background: var(--color-accent-dark);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .config-container {
-    margin: 30px 15px 80px;
-    padding: 25px 20px;
-  }
+.dropdown-menu button.logout-btn {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 15px;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
 
-  .config-container h2 {
-    font-size: 24px;
-  }
-
-  .buttons {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .cancel-btn,
-  .save-btn {
-    width: 100%;
-    text-align: center;
-  }
+.dropdown-menu button.logout-btn:hover {
+  background-color: var(--color-hover-bg);
 }
