@@ -1,3 +1,14 @@
+<?php
+require_once '../../Application/Services/Auth/login_user.php';
+
+// Procesar logout SIEMPRE al inicio
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
+    LoginUser::logout();
+    header('Location: ../auth/login.php');
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -33,12 +44,32 @@
                 <input type="text" placeholder="Search..." class="search-bar">
             </div>
 
+            <style>
+                .dropdown-menu button.logout-btn {
+                    background: none;
+                    border: none;
+                    width: 100%;
+                    text-align: left;
+                    padding: 15px;
+                    color: var(--color-text);
+                    cursor: pointer;
+                    font-size: inherit;
+                    font-family: inherit;
+                }
+
+                .dropdown-menu button.logout-btn:hover {
+                    background-color: var(--color-hover-bg);
+                }
+            </style>
+
             <!-- Right side: user icon with dropdown menu -->
             <div class="right-menu">
                 <div class="user-btn">
                     <img src="../../../public/assets/img/avatar.png" alt="User" class="user-icon">
                     <div class="dropdown-menu">
-                        <a href="index.php">Logout</a>
+                        <form method="POST">
+                            <button type="submit" name="logout" value="true" class="logout-btn">Logout</button>
+                        </form>
                         <a href="../profile/editprofile.php">Profile</a>
                         <a href="../profile/configuration.php">Settings</a>
                     </div>
