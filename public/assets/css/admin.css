@@ -314,3 +314,53 @@
 .inline {
     display: inline;
 }
+
+/* Badges para roles y estados */
+.badge.role.admin {
+    background: #edf6ff;
+    color: #1d6fa5;
+    border-color: #cfe6ff;
+}
+
+.badge.role.driver {
+    background: #f3fdf4;
+    color: #177d2c;
+    border-color: #cfeeda;
+}
+
+.badge.role.passenger {
+    background: #fff9ef;
+    color: #8a5a00;
+    border-color: #f6e3bf;
+}
+
+.badge.status.active {
+    background: #e6ffed;
+    color: #1a7f37;
+    border-color: #c8f0d0;
+}
+
+.badge.status.inactive {
+    background: #fde8e8;
+    color: #9b1c1c;
+    border-color: #f5cccc;
+}
+
+.actions .link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-primary);
+    text-decoration: none;
+    padding: 0;
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+.actions .link.warn {
+    color: #b24a00;
+}
+
+.actions .link.ok {
+    color: #1b7f3a;
+}
