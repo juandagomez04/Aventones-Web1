@@ -63,16 +63,72 @@ class AdminActions
         ]);
     }
 
-    /** Obtener todos los administradores (ordenados por fecha) */
-    public static function getAdmins(): array
+    /** Obtener todos los usuarios con filtros */
+    public static function getUsers(string $roleFilter = 'all', string $statusFilter = 'all'): array
     {
         global $pdo;
-        $sql = "SELECT id, first_name, last_name, email, status, created_at
+
+        $sql = "SELECT id, first_name, last_name, email, role, status, created_at
                 FROM users
-                WHERE role = 'admin'
-                ORDER BY created_at DESC";
-        $stmt = $pdo->query($sql);
+                WHERE 1=1";
+
+        $params = [];
+
+        // Filtro por rol
+        if ($roleFilter !== 'all') {
+            $sql .= " AND role = :role";
+            $params[':role'] = $roleFilter;
+        }
+
+        // Filtro por estado
+        if ($statusFilter !== 'all') {
+            $sql .= " AND status = :status";
+            $params[':status'] = $statusFilter;
+        }
+
+        $sql .= " ORDER BY created_at DESC";
+
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Actualizar estado de usuario */
+    public static function updateUserStatus(int $id, string $status): bool
+    {
+        global $pdo;
+
+        // 1) Proteger al primer admin (el de menor id)
+        $minId = (int) $pdo->query("SELECT MIN(id) FROM users WHERE role='admin'")->fetchColumn();
+        if ($id === $minId) {
+            return false; // es el admin semilla
+        }
+
+        // Validar que el estado sea válido
+        $validStatuses = ['active', 'inactive'];
+        if (!in_array($status, $validStatuses)) {
+            throw new Exception("Invalid status");
+        }
+
+        // No permitir desactivar todos los admins
+        if ($status === 'inactive') {
+            $user = $pdo->prepare("SELECT role FROM users WHERE id = :id")->execute([':id' => $id]);
+            $userData = $pdo->prepare("SELECT role FROM users WHERE id = :id")->fetch(PDO::FETCH_ASSOC);
+
+            if ($userData && $userData['role'] === 'admin') {
+                $activeAdmins = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE role='admin' AND status='active'")->fetchColumn();
+                if ($activeAdmins <= 1) {
+                    return false; // No se puede desactivar el último admin activo
+                }
+            }
+        }
+
+        $sql = "UPDATE users SET status = :status WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        return $stmt->execute([
+            ':status' => $status,
+            ':id' => $id
+        ]);
     }
 
     /** Eliminar un administrador (protege contra borrar el último) */
@@ -92,9 +148,35 @@ class AdminActions
             return false; // es el admin semilla
         }
 
-        // 3) Borrar admins normales
-        $stmt = $pdo->prepare("DELETE FROM users WHERE id=:id AND role='admin'");
-        return $stmt->execute([':id' => $id]);
+        // 3) Obtener ruta de la foto (si existe) antes de borrar
+        $stmt = $pdo->prepare("SELECT photo_path FROM users WHERE id = :id AND role = 'admin' LIMIT 1");
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return false; // no existe ese admin
+        }
+        $photoPath = $row['photo_path'];
+
+        // 4) Borrar admin de la BD
+        $stmt = $pdo->prepare("DELETE FROM users WHERE id = :id AND role = 'admin'");
+        $deleted = $stmt->execute([':id' => $id]);
+
+        // 5) Si se borró en BD, intentar eliminar fichero de foto (con comprobaciones de seguridad)
+        if ($deleted && !empty($photoPath)) {
+            $allowedPrefix = 'public/assets/img/users/';
+            // sólo operar sobre rutas relativas esperadas para evitar eliminar ficheros arbitrarios
+            if (strpos($photoPath, $allowedPrefix) === 0) {
+                $fullPath = __DIR__ . '/../../../../' . $photoPath;
+                // asegurarnos de que la ruta real esté dentro del directorio de usuarios
+                $assetsDir = realpath(__DIR__ . '/../../../../public/assets/img/users/');
+                $realFull = realpath($fullPath) ?: $fullPath;
+                if ($assetsDir && strpos($realFull, $assetsDir) === 0 && is_file($realFull)) {
+                    @unlink($realFull);
+                }
+            }
+        }
+
+        return (bool) $deleted;
     }
 
 }
