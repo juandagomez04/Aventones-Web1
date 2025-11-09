@@ -303,6 +303,8 @@ td {
   display: block;
 }
 
+/* Admin Menu Styles */
+
 
 /* === Footer === */
 
@@ -354,4 +356,20 @@ footer nav a {
 
 .links a {
   color: var(--color-link)
+}
+
+.dropdown-menu button.logout-btn {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 15px;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.dropdown-menu button.logout-btn:hover {
+  background-color: var(--color-hover-bg);
 }
