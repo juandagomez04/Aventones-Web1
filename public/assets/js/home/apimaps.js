@@ -1,4 +1,4 @@
-// Scripts/home/apimaps.js
+// Proyecto 1/public/assets/js/home/apimaps.js
 (() => {
     const $ = (sel) => document.querySelector(sel);
 
