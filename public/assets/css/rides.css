@@ -1,116 +1,119 @@
-/* ===========================================
+/* =========================================================
    RIDES (Search, My Rides, New/Edit/Details)
-   =========================================== */
+   Requiere:
+     - <body class="rides-page">
+     - <table class="rides-table">
+     - <td class="actions"> en la columna de acciones
+   ========================================================= */
 
-/* === Header & Title (ligero, sin re-definir variables) === */
-.header {
+/* === Header & Title === */
+.rides-page .header {
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 10px auto 6px;
   max-width: 1200px;
-  padding: 0 20px;
+  padding: 0 20px
 }
 
-.logo {
+.rides-page .logo {
   width: 85px;
-  height: auto;
+  height: auto
 }
 
-.title {
+.rides-page .title {
   font-size: 36px;
   color: var(--color-heading);
   padding: 10px 20px;
   margin: 0;
-  font-family: var(--font-heading, inherit);
+  font-family: var(--font-heading, inherit)
 }
 
 /* === Navigation Bar === */
-.menu-container {
+.rides-page .menu-container {
   width: 100%;
   padding: 10px 0;
   background: var(--color-white);
-  box-shadow: 0 2px 4px rgba(0,0,0,.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .1)
 }
 
-.menu {
+.rides-page .menu {
   display: flex;
   justify-content: space-between;
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 20px
 }
 
-.left-menu {
+.rides-page .left-menu {
   display: flex;
-  gap: 30px;
+  gap: 30px
 }
 
-.left-menu a {
+.rides-page .left-menu a {
   color: var(--color-heading);
   font-weight: 600;
   text-decoration: none;
   padding: 10px 15px;
   border-radius: var(--radius-small);
-  transition: background .2s, color .2s;
+  transition: background .2s, color .2s
 }
 
-.left-menu a:hover {
+.rides-page .left-menu a:hover {
   background: var(--color-accent);
-  color: var(--color-white);
+  color: #fff
 }
 
-.left-menu a.active {
+.rides-page .left-menu a.active {
   background: var(--color-primary);
-  color: var(--color-white);
+  color: #fff
 }
 
-.center-search {
+.rides-page .center-search {
   flex-grow: 1;
   display: flex;
   justify-content: flex-end;
-  padding: 0 20px;
+  padding: 0 20px
 }
 
-.search-bar {
+.rides-page .search-bar {
   padding: 8px 12px;
   width: 100%;
   max-width: 300px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-small);
-  font-size: 14px;
+  font-size: 14px
 }
 
-.right-menu {
+.rides-page .right-menu {
   display: flex;
   align-items: center;
-  position: relative;
+  position: relative
 }
 
-.user-btn {
+.rides-page .user-btn {
   cursor: pointer;
-  position: relative;
+  position: relative
 }
 
-.user-icon {
+.rides-page .user-icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 50%
 }
 
-/* === Divider === */
-hr {
+/* === Divider & Subtitles === */
+.rides-page hr {
   border: 0;
   height: 1px;
-  background: var(--color-separator);
-  margin: 20px 0;
+  background: var(--color-divider);
+  margin: 20px 0
 }
 
-/* === Subtitle (compatibilidad con h2 liviano) === */
-.subtitle,
-h2.subtitle,
-section h2 {
+.rides-page .subtitle,
+.rides-page h2.subtitle,
+.rides-page section h2 {
   font-weight: 300;
   color: var(--color-subtitle);
   margin: 30px auto 10px;
@@ -119,332 +122,387 @@ section h2 {
   padding-bottom: 6px;
   display: block;
   text-align: center;
-  width: fit-content;
+  width: fit-content
 }
 
-.subtitle::after,
-h2.subtitle::after,
-section h2::after {
+.rides-page .subtitle::after,
+.rides-page h2.subtitle::after,
+.rides-page section h2::after {
   content: "";
   display: block;
   margin: 6px auto 0;
   width: 60%;
   height: 2px;
   background: var(--color-line);
-  border-radius: 1px;
+  border-radius: 1px
 }
 
-/* ===========================================
-   Search & My Rides (filtros + tabla + mapa)
-   =========================================== */
-
-/* === Caja de filtros === */
-.filter-box {
+/* === Filtros / Resultados / Avatar === */
+.rides-page .filter-box {
   border: 1px solid var(--color-muted);
   padding: 20px;
   max-width: 750px;
   margin: 20px auto;
-  background: var(--color-white);
-  border-radius: var(--radius-small);
+  background: #fff;
+  border-radius: var(--radius-small)
 }
 
-.filter-form {
+.rides-page .filter-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 10px
 }
 
-.filter-row {
+.rides-page .filter-row {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: nowrap;
-  justify-content: space-between;
+  justify-content: space-between
 }
 
-.filter-row label {
+.rides-page .filter-row label {
   font-weight: 500;
-  white-space: nowrap;
+  white-space: nowrap
 }
 
-.filter-row select {
-  min-width: 150px;
+.rides-page .filter-row select {
+  min-width: 150px
 }
 
-.find-btn {
-  white-space: nowrap;
+.rides-page .find-btn {
+  white-space: nowrap
 }
 
-/* === Filtros de días === */
-.filter-days {
+.rides-page .filter-days {
   display: flex;
   align-items: center;
   gap: 50px;
   flex-wrap: nowrap;
   padding-left: 5px;
-  font-size: 13px;
+  font-size: 13px
 }
 
-.filter-days label {
+.rides-page .filter-days label {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin: 0;
+  margin: 0
 }
 
-/* === Resultados === */
-.results {
+.rides-page .results {
   max-width: var(--max-width-content);
   margin: 20px auto;
-  padding: 0 20px;
+  padding: 0 20px
 }
 
-/* === Avatar pequeño en tabla === */
-.avatar {
+.rides-page .avatar {
   width: 20px;
   height: 20px;
   border-radius: 50%;
   vertical-align: middle;
-  margin-right: 6px;
-}
-
-/* === Tabla de Rides === */
-table {
-  width: 100%;
-  max-width: var(--max-width-content);
-  margin: 20px auto 50px;
-  border-collapse: collapse;
-  background: var(--color-white);
-  box-shadow: 0 2px 6px rgba(0,0,0,.05);
-  border-radius: var(--radius-medium);
-  overflow: hidden;
-  font-size: 14px;
-}
-
-thead {
-  background: var(--color-table-header, #f5f5f5);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .4px;
-}
-
-th, td {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--color-divider);
-  text-align: left;
-}
-
-tbody tr:hover {
-  background: #f9f9f9;
-}
-
-.actions a {
-  color: var(--color-link, var(--color-primary));
-  text-decoration: none;
-  margin: 0 8px 0 0;
-  font-weight: 500;
-  transition: color .2s;
-}
-
-.actions a:hover {
-  color: var(--color-accent);
-  text-decoration: underline;
+  margin-right: 6px
 }
 
 /* === Botón "New Ride" === */
-.button-container {
+.rides-page .button-container {
   width: 100%;
   max-width: var(--max-width-content);
   margin: 10px auto 0;
   padding: 0 10px;
-  text-align: right;
+  text-align: right
 }
 
-.new-ride {
+.rides-page .new-ride {
   display: inline-block;
   padding: 10px 26px;
   background: var(--color-accent);
-  color: var(--color-white);
+  color: #fff;
   text-decoration: none;
   border-radius: var(--radius-medium);
   font-weight: 600;
   letter-spacing: .5px;
   border: 1px solid var(--color-accent);
-  box-shadow: 0 3px 6px rgba(0,0,0,.1);
-  transition: all .25s ease;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, .1);
+  transition: all .25s ease
 }
 
-.new-ride:hover {
+.rides-page .new-ride:hover {
   background: var(--color-accent-dark, var(--color-primary-dark));
   border-color: var(--color-accent-dark, var(--color-primary-dark));
   transform: translateY(-2px);
-  box-shadow: 0 5px 10px rgba(0,0,0,.15);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, .15)
 }
 
-.new-ride:active {
+.rides-page .new-ride:active {
   transform: translateY(0);
-  box-shadow: 0 3px 6px rgba(0,0,0,.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, .1)
 }
 
-/* === Mapa (solo en Search Rides) === */
-#map {
+/* === Mapa === */
+.rides-page #map {
   width: 100%;
   max-width: 1000px;
   height: 420px;
   margin: 20px auto 100px;
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
   position: relative;
-  z-index: 1;
+  z-index: 1
 }
 
-/* ===========================================
-   New Ride / Edit Ride / Ride Details (Form)
-   =========================================== */
-
-.ride-form {
+/* === Formularios Ride === */
+.rides-page .ride-form {
   display: flex;
   flex-direction: column;
   gap: 15px;
-  background: var(--color-white);
+  background: #fff;
   padding: 20px;
   border-radius: var(--radius-medium);
-  box-shadow: 0 2px 6px rgba(8,8,8,.1);
+  box-shadow: 0 2px 6px rgba(8, 8, 8, .1);
   max-width: 600px;
-  margin: 0 auto 40px;
+  margin: 0 auto 40px
 }
 
-.ride-form .row {
+.rides-page .ride-form .row {
   display: flex;
   gap: 15px;
-  flex-wrap: wrap;
+  flex-wrap: wrap
 }
 
-.ride-form .field {
+.rides-page .ride-form .field {
   flex: 1 1 240px;
   display: flex;
-  flex-direction: column;
+  flex-direction: column
 }
 
-.ride-form label {
+.rides-page .ride-form label {
   font-size: 14px;
   margin-bottom: 6px;
-  color: var(--color-heading);
+  color: var(--color-heading)
 }
 
-.ride-form input,
-.ride-form select {
+.rides-page .ride-form input,
+.rides-page .ride-form select {
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-small);
   font-size: 14px;
-  background: var(--color-white);
+  background: #fff
 }
 
-
-/* Días (checkboxes) */
-.days-checkboxes {
+.rides-page .days-checkboxes {
   display: flex;
   flex-wrap: wrap;
   gap: 16px 24px;
   justify-content: center;
   align-items: center;
   margin-top: 6px;
-  margin-bottom: 0px; 
+  margin-bottom: 0
 }
 
-.days-checkboxes label {
+.rides-page .days-checkboxes label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 14px
 }
 
-/* Hora y Asientos (si usas .details_field) */
-.details_field {
+.rides-page .details_field {
   flex: 1 1 120px;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-width: 160px;
+  max-width: 160px
 }
 
-/* Datos del Vehículo */
-.vehicle-details {
+.rides-page .vehicle-details {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-small);
   padding: 12px;
-  margin-top: 8px;
+  margin-top: 8px
 }
 
-.vehicle-details legend {
+.rides-page .vehicle-details legend {
   font-weight: 700;
   font-size: 14px;
   padding: 0 6px;
-  color: var(--color-heading);
+  color: var(--color-heading)
 }
 
-/* Acciones del Formulario */
-.buttons {
+.rides-page .buttons {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 10px;
-  margin-bottom: 60px;
+  margin-bottom: 60px
 }
 
-.cancel-btn {
+.rides-page .cancel-btn {
   background: none;
   color: var(--color-primary);
   text-decoration: none;
   border-radius: var(--radius-small);
-  padding: 8px 10px;
+  padding: 8px 10px
 }
 
-.cancel-btn:hover {
-  text-decoration: underline;
+.rides-page .cancel-btn:hover {
+  text-decoration: underline
 }
 
-.next-btn,
-.save-btn,
-.update-btn {
+.rides-page .next-btn,
+.rides-page .save-btn,
+.rides-page .update-btn {
   background: var(--color-primary);
-  color: var(--color-white);
+  color: #fff;
   border: none;
   border-radius: var(--radius-small);
   padding: 10px 14px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 600
 }
 
-.next-btn:hover,
-.save-btn:hover,
-.update-btn:hover {
-  background: var(--color-primary-dark);
+.rides-page .next-btn:hover,
+.rides-page .save-btn:hover,
+.rides-page .update-btn:hover {
+  background: var(--color-primary-dark)
 }
 
-/* Foto/Perfil (si se muestra en Details) */
-.profile-section {
+.rides-page .profile-section {
   width: 100%;
   margin: 10px 0;
   font-weight: 700;
   text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: center
 }
 
-.profile-pic {
+.rides-page .profile-pic {
   width: 80px;
   height: 80px;
   border-radius: 50%;
   margin-bottom: 10px;
-  object-fit: cover;
+  object-fit: cover
 }
 
+/* === Contenedor general === */
+.rides-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px
+}
 
+.rides-page .my-3 {
+  margin-top: 1rem;
+  margin-bottom: 1rem
+}
 
+.rides-page .mb-3 {
+  margin-bottom: 1rem
+}
 
+/* ===== My Rides: tabla específica ===== */
+table.table-rides{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0 15px;
+  margin:0;
+  background:transparent;
+  box-shadow:none;
+  border-radius:0;
+  overflow:visible;
+  font-size:14px;
+}
 
+table.table-rides thead{
+  background:#f8f9fa;
+  font-weight:600;
+}
 
+table.table-rides th{
+  padding:20px 25px;
+  font-weight:600;
+  color:#2c3e50;
+  border-bottom:2px solid #dee2e6;
+  font-size:14px;
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  text-align:left;
+  background:#f8f9fa;
+}
 
+table.table-rides td{
+  padding:28px 25px;
+  background:#fff;
+  border:none;
+  font-size:14px;
+  color:#495057;
+  vertical-align:middle;
+  line-height:1.5;
+}
+
+table.table-rides tbody tr{
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  border-radius:8px;
+  transition:all .3s ease;
+  background:#fff;
+}
+table.table-rides tbody tr:hover{
+  box-shadow:0 4px 15px rgba(0,0,0,.12);
+  transform:translateY(-2px);
+}
+
+/* ===== Acciones: fila + espacio entre botones ===== */
+table.table-rides td.actions{
+  display:flex !important;
+  flex-direction:row !important;
+  justify-content:flex-end !important;
+  align-items:center !important;
+  gap:10px !important;
+  white-space:nowrap !important;
+  padding-right:6px;
+}
+
+table.table-rides td.actions form{display:inline-block !important; margin:0 !important;}
+
+table.table-rides td.actions .btn,
+table.table-rides td.actions a.btn,
+table.table-rides td.actions form .btn,
+table.table-rides td.actions button,
+table.table-rides td.actions input[type="submit"]{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:80px !important;
+  height:30px !important;
+  padding:6px 12px !important;
+  line-height:1 !important;
+  font-size:12px !important;
+  font-weight:500 !important;
+  border-radius:4px !important;
+  background:#007bff !important;
+  border:1px solid #007bff !important;
+  color:#fff !important;
+  text-decoration:none !important;
+  box-shadow:0 1px 4px rgba(13,110,253,.2) !important;
+  cursor:pointer !important;
+  transition:all .2s ease !important;
+}
+
+table.table-rides td.actions .btn:hover,
+table.table-rides td.actions a.btn:hover,
+table.table-rides td.actions form .btn:hover,
+table.table-rides td.actions button:hover,
+table.table-rides td.actions input[type="submit"]:hover{
+  background:#0056b3 !important;
+  border-color:#0056b3 !important;
+  box-shadow:0 2px 8px rgba(13,110,253,.25) !important;
+  transform:translateY(-1px) !important;
+}
+
+/* Mensaje sin rides */
+table.table-rides .text-muted{
+  color:#6c757d; text-align:center; padding:50px;
+  font-style:italic; font-size:16px; border-bottom:none;
+}
