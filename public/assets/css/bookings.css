@@ -36,10 +36,3 @@
   vertical-align: middle;
   margin-right: 8px;
 }
-
-/* Si prefieres badges locales en lugar de base.css, descomenta: */
-/*
-.badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:12px}
-.badge.accepted{background:#e6ffed;color:#1a7f37;border:1px solid #c8f0d0}
-.badge.pending{background:#fff7e6;color:#8a6d3b;border:1px solid #f5e1b5}
-*/
