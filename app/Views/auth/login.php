@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p class="register-link">
                     Not a user?
                     <a href="register_passenger.php">Register as Passenger</a> |
-                    <a href="register_driver.php">Register as Driver</a>
+                    <a href="register_drivers.php">Register as Driver</a>
                 </p>
 
                 <button type="submit" class="submit-btn login-btn">Login</button>

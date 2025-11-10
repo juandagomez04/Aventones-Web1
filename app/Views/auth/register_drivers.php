@@ -1,5 +1,5 @@
 <?php
-// /Proyecto/app/Views/auth/register_passenger.php
+// /Proyecto/app/Views/auth/register_drivers.php
 require_once __DIR__ . '/../../Application/Services/Auth/register.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -19,7 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 
   try {
-    RegisterService::registerPassenger($_POST, $_FILES);
+    // CORRECCIÓN: Cambiar registerPassenger por registerDriver
+    RegisterService::registerDriver($_POST, $_FILES);
     echo "<script>alert('✅ Registro exitoso. Revisa tu correo para activar la cuenta.'); window.location.href='login.php';</script>";
     exit;
   } catch (Throwable $e) {
@@ -38,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="../../../public/assets/css/base.css">
-  <link rel="stylesheet" href="../../../public/assets/css/auth.css">
 
 </head>
 
@@ -55,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2 class="subtitle">Driver Registration</h2>
 
     <!-- Driver registration form -->
-    <form class="form" action="register_passenger.php" method="post" enctype="multipart/form-data">
+    <!-- CORRECCIÓN: Cambiar action a register_drivers.php -->
+    <form class="form" action="register_drivers.php" method="post" enctype="multipart/form-data">
       <input type="hidden" name="register_type" value="driver">
 
       <!-- Campos que van al execute() -->
@@ -106,14 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="file" id="photo" name="photo" accept="image/*">
       </div>
 
-
       <!-- Links -->
       <div class="links">
-        <p class="login-link">Already a user? <a href="login.php">Login here</a></p>
-        <p class="register-driver-link">Register as driver? <a href="register_drivers.php">Click here</a></p>
+        <p class="login-link">Already a driver? <a href="login.php">Login here</a></p>
+        <p class="register-driver-link">Register as passenger? <a href="register_passenger.php">Click here</a></p>
       </div>
 
-      <button type="submit" class="submit-btn">Sign up</button>
+      <button type="submit" class="submit-btn">Register</button>
     </form>
 
     <!-- Footer with navigation links -->
