@@ -1,68 +1,104 @@
 <?php
-require_once '../../Application/Services/Auth/login_user.php';
+/* app/Views/rides/detailsride.php */
+session_start();
 
-// Procesar logout SIEMPRE al inicio
+require_once __DIR__ . '/../../Application/Services/Auth/login_user.php';
+require_once __DIR__ . '/../../Application/Services/Rides/ManageRides.php';
+
+if (!LoginUser::isLoggedIn()) {
+    header('Location: ../auth/login.php');
+    exit;
+}
+
+// ---- Logout (menú) ----
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     LoginUser::logout();
     header('Location: ../auth/login.php');
     exit;
 }
-?>
 
+$rideId = (int) ($_GET['id'] ?? 0);
+$ride = ManageRides::getRide($rideId); // asumiendo que ya tienes este método
+if (!$ride) {
+    http_response_code(404);
+    echo "Ride no encontrado";
+    exit;
+}
+
+// Datos
+$origin = (string) $ride['origin'];
+$destination = (string) $ride['destination'];
+$veh = trim(($ride['make'] ?? '') . ' ' . ($ride['model'] ?? '') . ' ' . ($ride['year'] ?? ''));
+?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ride Details - AVENTONES</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Estilos propios -->
     <link rel="stylesheet" href="../../../public/assets/css/base.css">
     <link rel="stylesheet" href="../../../public/assets/css/rides.css">
+    <link rel="stylesheet" href="../../../public/assets/css/ridedetails.css"><!-- opcional -->
 
+    <!-- Leaflet (mismo stack del proyecto pasado) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        /* Asegura altura visible del mapa sin tocar tus CSS globales */
+        #map {
+            height: 380px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        /* Oculta los combos “puente” que usa apimaps.js */
+        .ghost-select {
+            position: absolute;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        /* Ajusta la posición del bloque de botones bajo el mapa */
+        .card.p-3 .mt-3.d-flex {
+            margin-top: 10px !important;
+            /* reduce el espacio vertical */
+            justify-content: center;
+            /* centra horizontalmente los botones */
+        }
+
+        /* (opcional) ajusta el tamaño de los botones */
+        .card.p-3 .mt-3.d-flex .btn {
+            padding: 6px 16px;
+            font-size: 0.95rem;
+        }
+    </style>
 </head>
 
 <body>
-    <!-- Header with logo and title -->
+    <!-- Header -->
     <div class="header">
         <img src="../../../public/assets/img/Icono.png" alt="Logo" class="logo">
         <h1 class="title">AVENTONES</h1>
     </div>
 
-    <!-- Top navigation menu -->
+    <!-- Menú unificado -->
     <div class="menu-container">
         <div class="menu">
-            <!-- Left navigation links -->
             <nav class="left-menu">
                 <a href="../rides/searchrides.php">Home</a>
-                <a class="active" href="../myrides/myrides.php">Rides</a>
+                <a href="../myrides/myrides.php">Rides</a>
                 <a href="../bookings/bookings.php">Bookings</a>
             </nav>
 
-            <!-- Center search bar -->
             <div class="center-search">
                 <input type="text" placeholder="Search..." class="search-bar">
             </div>
 
-            <style>
-                .dropdown-menu button.logout-btn {
-                    background: none;
-                    border: none;
-                    width: 100%;
-                    text-align: left;
-                    padding: 15px;
-                    color: var(--color-text);
-                    cursor: pointer;
-                    font-size: inherit;
-                    font-family: inherit;
-                }
-
-                .dropdown-menu button.logout-btn:hover {
-                    background-color: var(--color-hover-bg);
-                }
-            </style>
-
-            <!-- Right-side user dropdown -->
             <div class="right-menu">
                 <div class="user-btn">
                     <img src="../../../public/assets/img/avatar.png" alt="User" class="user-icon">
@@ -78,145 +114,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
         </div>
     </div>
 
-    <hr>
+    <!-- Contenido -->
+    <div class="container">
 
-    <!-- Page subtitle -->
-    <h2>Ride Details</h2>
+        <h2 class="mb-2"><?= htmlspecialchars($ride['name'] ?? 'Ride #' . $rideId) ?></h2>
 
-    <!-- Profile information -->
-    <div class="profile-section">
-        <img src="Images/avatar.png" alt="Profile Picture" class="profile-pic">
-        <p>juanda_gomez04</p>
+        <div class="grid-2">
+            <!-- Columna izquierda: datos -->
+            <div class="card p-3">
+                <div class="row">
+                    <div class="col">
+                        <p><strong>Origen:</strong> <?= htmlspecialchars($origin) ?></p>
+                        <p><strong>Destino:</strong> <?= htmlspecialchars($destination) ?></p>
+                        <p><strong>Días:</strong> <?= htmlspecialchars($ride['days']) ?></p>
+                        <p><strong>Hora:</strong> <?= htmlspecialchars(substr((string) $ride['time'], 0, 5)) ?></p>
+                    </div>
+                    <div class="col">
+                        <p><strong>Vehículo:</strong> <?= htmlspecialchars($veh) ?></p>
+                        <p><strong>Asientos:</strong> <?= (int) $ride['seats_total'] ?></p>
+                        <p><strong>Tarifa:</strong> ₡
+                            <?= htmlspecialchars(number_format((float) $ride['seat_price'], 2)) ?>
+                        </p>
+
+                        <!-- Mostrar foto del vehículo si existe -->
+                        <h5 class="mt-3">Vehicle</h5>
+                        <?php if (!empty($ride['photo_path'])): ?>
+                            <div class="text-center mb-3">
+                                <img src="../../../public/<?= htmlspecialchars($ride['photo_path']) ?>" alt="Vehicle Photo"
+                                    class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center mb-3">
+                                <img src="../../../public/assets/img/avatar.png" alt="No Vehicle Photo"
+                                    class="img-fluid rounded" style="max-height: 200px; opacity: 0.5;">
+                                <p class="text-muted mt-2">No vehicle photo available</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Columna derecha: mapa -->
+            <div class="card p-3">
+                <h3 class="mb-1">Ruta</h3>
+
+                <!-- “Puente” para apimaps.js: selects #from y #to con los valores del ride -->
+                <select id="from" class="ghost-select" aria-hidden="true">
+                    <option value="<?= htmlspecialchars($origin) ?>" selected><?= htmlspecialchars($origin) ?></option>
+                </select>
+
+                <select id="to" class="ghost-select" aria-hidden="true">
+                    <option value="<?= htmlspecialchars($destination) ?>" selected><?= htmlspecialchars($destination) ?>
+                    </option>
+                </select>
+
+                <!-- Contenedor del mapa (usado por apimaps.js) -->
+                <small class="text-muted">Vista aproximada de la ruta entre origen y destino.</small>
+                <div id="map"></div>
+
+                <div class="mt-3 d-flex gap-2">
+                    <a class="btn btn-outline-secondary" href="#"
+                        onclick="event.preventDefault(); history.back();">Volver</a>
+                    <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'driver'): ?>
+                        <a class="btn btn-primary" href="../myrides/editride.php?id=<?= $rideId ?>">Edit</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Ride detail form (read-only style) -->
-    <form class="ride-form" action="../myrides/myrides.php" method="get">
-
-        <!-- Departure and arrival information -->
-        <div class="row">
-            <div class="field">
-                <label for="departure">Departure from</label>
-                <input type="text" id="departure" value="Quesada" required>
-            </div>
-            <div class="field">
-                <label for="arrival">Arrive To</label>
-                <input type="text" id="arrival" value="Zarcero" required>
-            </div>
-        </div>
-
-        <!-- Days (su propia fila) -->
-        <div class="row">
-            <div class="field days">
-                <label>Days</label>
-                <div class="days-checkboxes">
-                    <label><input type="checkbox" name="days" value="Mon"> Mon</label>
-                    <label><input type="checkbox" name="days" value="Tue"> Tue</label>
-                    <label><input type="checkbox" name="days" value="Wed"> Wed</label>
-                    <label><input type="checkbox" name="days" value="Thu"> Thu</label>
-                    <label><input type="checkbox" name="days" value="Fri"> Fri</label>
-                    <label><input type="checkbox" name="days" value="Sat"> Sat</label>
-                    <label><input type="checkbox" name="days" value="Sun"> Sun</label>
-                </div>
-            </div>
-        </div>
-
-        <!-- Time, Seats, Fee (siguiente fila separada) -->
-        <div class="row">
-            <div class="details_field">
-                <label for="time">Time</label>
-                <select id="time">
-                    <option>08:00 am</option>
-                    <option>09:00 am</option>
-                    <option>10:00 am</option>
-                    <option>11:00 am</option>
-                    <option>12:00 pm</option>
-                    <option>01:00 pm</option>
-                    <option>02:00 pm</option>
-                    <option>03:00 pm</option>
-                    <option>04:00 pm</option>
-                </select>
-            </div>
-            <div class="details_field">
-                <label for="seats">Seats</label>
-                <input type="number" id="seats" min="1" max="10" value="1">
-            </div>
-            <div class="details_field">
-                <label for="fee">Fee</label>
-                <input type="number" id="fee" min="0" value="0">
-            </div>
-        </div>
-
-        <!-- Vehicle information section -->
-        <fieldset class="vehicle-details">
-            <legend>Vehicle Details</legend>
-            <div class="row">
-                <div class="field">
-                    <label for="make">Make</label>
-                    <select id="make">
-                        <option selected>Nissan</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="model">Model</label>
-                    <input type="text" id="model" value="March">
-                </div>
-                <div class="field">
-                    <label for="year">Year</label>
-                    <input type="number" id="year" value="2020">
-                </div>
-
-            </div>
-            <div class="field photo-field"
-                style="flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                <label for="photo" style="margin-bottom:8px;">Photo</label>
-                <div id="photoPreview" style="
-                    position: relative;
-                    width: 200px;
-                    height: 200px;
-                    border: 2px dashed #ccc;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    background: #f9f9f9;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                ">
-                    <img id="photoImage" src="../../../public/assets/img/Icono.png" alt="Photo preview" style="
-                        width: 200px;
-                        height: 200px;
-                        object-fit: cover;
-                        display: block;
-                        max-width: none;
-                        border-radius: 8px;
-                    ">
-                </div>
-            </div>
-
-        </fieldset>
-
-        <!-- Action buttons -->
-        <div class="buttons">
-            <button type="button" class="cancel-btn" onclick="window.history.back()">Back</button>
-        </div>
-
-    </form>
-
-    <!-- Footer with navigation links -->
-    <footer>
-        <hr>
-        <nav>
-            <a href="../rides/searchrides.php">Home</a> |
-            <a href="../myrides/myrides.php">Rides</a> |
-            <a href="../bookings/bookings.php">Bookings</a> |
-            <a href="../profile/configuration.php">Settings</a> |
-            <a href="../auth/login.php">Login</a> |
-            <a href="../auth/register_passenger.php">Register</a>
-        </nav>
-        <p>&copy; Aventones.com</p>
-    </footer>
-
-    <script src="./Scripts/myrides/detailsride.js"></script>
-
+    <!-- Leaflet + apimaps (solo estos JS, como pediste) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Ajusta la ruta del JS según donde ubiques el archivo del proyecto pasado -->
+    <script src="../../../public/assets/js/home/apimaps.js"></script>
 </body>
 
 </html>
