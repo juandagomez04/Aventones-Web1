@@ -1,196 +1,106 @@
 <?php
-require_once '../../Application/Services/Auth/login_user.php';
+/* Proyecto 1/app/Views/myrides/editride.php */
 
-// Procesar logout SIEMPRE al inicio
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
-    LoginUser::logout();
-    header('Location: ../auth/login.php');
-    exit;
+require_once __DIR__ . '/../../Application/Services/Rides/ManageRides.php';
+session_start();
+$driverId = (int) ($_SESSION['user_id'] ?? 0);
+$rideId = (int) ($_GET['id'] ?? 0);
+
+$ride = ManageRides::getRide($rideId);
+if (!$ride) {
+    die('Ride not found');
 }
-?>
 
-<!DOCTYPE html>
+$msg = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        ManageRides::updateRide($driverId, $rideId, $_POST);
+        $ride = ManageRides::getRide($rideId); // refrescar
+        $msg = ['ok', 'Ride updated!'];
+    } catch (Throwable $e) {
+        $msg = ['err', $e->getMessage()];
+    }
+}
+
+// Vehículos del driver
+$veh = $pdo->prepare("SELECT id, plate, make, model FROM vehicles WHERE driver_id=? ORDER BY id DESC");
+$veh->execute([$driverId]);
+$vehicles = $veh->fetchAll(PDO::FETCH_ASSOC);
+
+$selectedDays = explode(',', (string) $ride['days']);
+?>
+<!doctype html>
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Ride - AVENTONES</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta charset="utf-8">
+    <title>Edit Ride</title>
     <link rel="stylesheet" href="../../../public/assets/css/base.css">
-    <link rel="stylesheet" href="../../../public/assets/css/rides.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 </head>
 
 <body>
-    <!-- Header with logo and system title -->
-    <div class="header">
-        <img src="../../../public/assets/img/Icono.png" alt="Logo" class="logo">
-        <h1 class="title">AVENTONES</h1>
-    </div>
+    <div class="container mt-4">
+        <h2 class="subtitle">Edit Ride</h2>
 
-    <!-- Navigation menu -->
-    <div class="menu-container">
-        <div class="menu">
-            <!-- Left navigation links -->
-            <nav class="left-menu">
-                <a href="../rides/searchrides.php">Home</a>
-                <a class="active" href="../myrides/myrides.php">Rides</a>
-                <a href="../bookings/bookings.php">Bookings</a>
-            </nav>
+        <?php if ($msg): ?>
+            <div class="alert alert-<?= $msg[0] === 'ok' ? 'success' : 'danger' ?>"><?= htmlspecialchars($msg[1]) ?></div>
+        <?php endif; ?>
 
-            <!-- Centered search input -->
-            <div class="center-search">
-                <input type="text" placeholder="Search..." class="search-bar">
-            </div>
-
-            <style>
-                .dropdown-menu button.logout-btn {
-                    background: none;
-                    border: none;
-                    width: 100%;
-                    text-align: left;
-                    padding: 15px;
-                    color: var(--color-text);
-                    cursor: pointer;
-                    font-size: inherit;
-                    font-family: inherit;
-                }
-
-                .dropdown-menu button.logout-btn:hover {
-                    background-color: var(--color-hover-bg);
-                }
-            </style>
-
-            <!-- Right-side user menu with dropdown -->
-            <div class="right-menu">
-                <div class="user-btn">
-                    <img src="../../../public/assets/img/avatar.png" alt="User" class="user-icon">
-                    <div class="dropdown-menu">
-                        <form method="POST">
-                            <button type="submit" name="logout" value="true" class="logout-btn">Logout</button>
-                        </form> 
-                        <a href="../profile/editprofile.php">Profile</a>
-                        <a href="../profile/configuration.php">Settings</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <hr>
-
-    <!-- Page title -->
-    <h2 class="subtitle">Edit Ride</h2>
-
-    <!-- Edit ride form -->
-    <form class="ride-form" action="myrides.php" method="get">
-
-        <!-- Row: Departure and Arrival locations -->
-        <div class="row">
-            <div class="field">
-                <label for="departure">Departure from</label>
-                <input type="text" id="departure" placeholder="Quesada" required>
-            </div>
-            <div class="field">
-                <label for="arrival">Arrive to</label>
-                <input type="text" id="arrival" placeholder="Alajuela" required>
-            </div>
-        </div>
-
-        <!-- Days (su propia fila) -->
-        <div class="row">
-            <div class="field days">
-                <label>Days</label>
-                <div class="days-checkboxes">
-                    <label><input type="checkbox" name="days" value="Mon"> Mon</label>
-                    <label><input type="checkbox" name="days" value="Tue"> Tue</label>
-                    <label><input type="checkbox" name="days" value="Wed"> Wed</label>
-                    <label><input type="checkbox" name="days" value="Thu"> Thu</label>
-                    <label><input type="checkbox" name="days" value="Fri"> Fri</label>
-                    <label><input type="checkbox" name="days" value="Sat"> Sat</label>
-                    <label><input type="checkbox" name="days" value="Sun"> Sun</label>
-                </div>
-            </div>
-        </div>
-
-        <!-- Time, Seats, Fee (siguiente fila separada) -->
-        <div class="row">
-            <div class="details_field">
-                <label for="time">Time</label>
-                <select id="time">
-                    <option>08:00 am</option>
-                    <option>09:00 am</option>
-                    <option>10:00 am</option>
-                    <option>11:00 am</option>
-                    <option>12:00 pm</option>
-                    <option>01:00 pm</option>
-                    <option>02:00 pm</option>
-                    <option>03:00 pm</option>
-                    <option>04:00 pm</option>
-                </select>
-            </div>
-            <div class="details_field">
-                <label for="seats">Seats</label>
-                <input type="number" id="seats" min="1" max="10" value="1">
-            </div>
-            <div class="details_field">
-                <label for="fee">Fee</label>
-                <input type="number" id="fee" min="0" value="0">
-            </div>
-        </div>
-
-        <!-- Vehicle details section -->
-        <fieldset class="vehicle-details">
-            <legend>Vehicle Details</legend>
-            <div class="row">
-                <div class="field">
-                    <label for="make">Make</label>
-                    <select id="make">
-                        <option value="Nissan">Nissan</option>
-                        <option value="Toyota">Toyota</option>
-                        <option value="Honda">Honda</option>
-                        <option value="Ford">Ford</option>
-                        <option value="Other">Other</option>
+        <form method="post" class="card card-body gap-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Vehicle</label>
+                    <select name="vehicle_id" class="form-select" required>
+                        <?php foreach ($vehicles as $v): ?>
+                            <option value="<?= $v['id'] ?>" <?= $v['id'] == $ride['vehicle_id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($v['plate'] . ' - ' . $v['make'] . ' ' . $v['model']) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="field">
-                    <label for="model">Model</label>
-                    <input type="text" id="model" placeholder="Car Model">
+                <div class="col-md-6">
+                    <label class="form-label">Ride name</label>
+                    <input name="name" class="form-control" required maxlength="80"
+                        value="<?= htmlspecialchars($ride['name']) ?>">
                 </div>
-                <div class="field">
-                    <label for="year">Year</label>
-                    <input type="number" id="year" min="1990" max="2025" value="2020">
+                <div class="col-md-6"><label class="form-label">Departure from</label>
+                    <input name="origin" class="form-control" required value="<?= htmlspecialchars($ride['origin']) ?>">
                 </div>
-                <div class="field">
-                    <label for="photo">Photo</label>
-                    <input type="file" id="photo" name="photo" accept="image/*">
+                <div class="col-md-6"><label class="form-label">Arrive to</label>
+                    <input name="destination" class="form-control" required
+                        value="<?= htmlspecialchars($ride['destination']) ?>">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label d-block">Days</label>
+                    <?php foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $d): ?>
+                        <label class="me-3">
+                            <input type="checkbox" name="days[]" value="<?= $d ?>"
+                                <?= in_array($d, $selectedDays) ? 'checked' : '' ?>> <?= $d ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+                <div class="col-md-3"><label class="form-label">Time</label>
+                    <input type="time" name="time" class="form-control" required
+                        value="<?= substr($ride['time'], 0, 5) ?>">
+                </div>
+                <div class="col-md-3"><label class="form-label">Seat price</label>
+                    <input type="number" step="0.01" min="0" name="seat_price" class="form-control" required
+                        value="<?= htmlspecialchars($ride['seat_price']) ?>">
+                </div>
+                <div class="col-md-3"><label class="form-label">Seats</label>
+                    <input type="number" min="1" name="seats_total" class="form-control" required
+                        value="<?= (int) $ride['seats_total'] ?>">
                 </div>
             </div>
-        </fieldset>
 
-        <!-- Action buttons -->
-        <div class="buttons">
-            <a href="myrides.php" class="cancel-btn">Cancel</a>
-            <button type="submit" class="next-btn">Save</button>
-        </div>
-    </form>
-
-    <!-- Footer with navigation links -->
-    <footer>
-        <hr>
-        <nav>
-            <a href="../rides/searchrides.php">Home</a> |
-            <a href="../myrides/myrides.php">Rides</a> |
-            <a href="../bookings/bookings.php">Bookings</a> |
-            <a href="../profile/configuration.php">Settings</a> |
-            <a href="../auth/login.php">Login</a> |
-            <a href="../auth/register_passenger.php">Register</a>
-        </nav>
-        <p>&copy; Aventones.com</p>
-    </footer>
-
-    <script src="./Scripts/myrides/editride.js"></script>
-
+            <div class="mt-3 d-flex gap-2">
+                <button class="btn btn-primary">Save changes</button>
+                <a class="btn btn-outline-secondary" href="myrides.php">Back to My Rides</a>
+            </div>
+        </form>
+    </div>
 </body>
 
 </html>
