@@ -1,3 +1,5 @@
+/* Proyecto 1/public/assets/css/auth.css */
+
 /* Página de autenticación */
 body.auth{
   min-height: 100vh;
@@ -34,9 +36,14 @@ body.auth{
 
 
 .subtitle {
-    font-size: 28px;
-    margin-bottom: 20px
+  display: block !important;
+  color: var(--color-text, #222) !important; /* evita texto blanco sobre fondo blanco */
+  font-weight: 600;
+  font-size: 28px;
+  text-align: center;
+  margin: 12px 0 20px;
 }
+
 
 .login-form {
     width: 100%;
@@ -103,3 +110,4 @@ body.auth{
     text-align: left;
     width: 100%
 }
+
