@@ -89,55 +89,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Guardar cambios del perfil
     // En la sección de manejo de POST en editprofile.php
-if (isset($_POST['update_profile'])) {
-    try {
-        $updateData = [
-            'first_name' => trim($_POST['first_name'] ?? ''),
-            'last_name' => trim($_POST['last_name'] ?? ''),
-            'national_id' => trim($_POST['national_id'] ?? ''),
-            'birth_date' => trim($_POST['birth_date'] ?? ''),
-            'email' => trim($_POST['email'] ?? ''),
-            'phone' => trim($_POST['phone'] ?? '')
-        ];
+    if (isset($_POST['update_profile'])) {
+        try {
+            $updateData = [
+                'first_name' => trim($_POST['first_name'] ?? ''),
+                'last_name' => trim($_POST['last_name'] ?? ''),
+                'national_id' => trim($_POST['national_id'] ?? ''),
+                'birth_date' => trim($_POST['birth_date'] ?? ''),
+                'email' => trim($_POST['email'] ?? ''),
+                'phone' => trim($_POST['phone'] ?? ''),
+            ];
 
-        $oldRelPath = $userData['photo_path'] ?? $defaultAvatarRel;
-        $newRelPath = null;
+            // Pasa el archivo tal cual (o null). La clase se encarga de validar, guardar y borrar la foto anterior.
+            $photoFile = $_FILES['photo'] ?? null;
 
-        // Manejo de foto
-        if (isset($_FILES['photo']) && ($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-            $tmp = $_FILES['photo']['tmp_name'];
-            $name = $_FILES['photo']['name'];
-            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
-            if (!in_array($ext, $allowed, true)) {
-                throw new RuntimeException('Formato de imagen no permitido. Usa JPG, PNG o WEBP.');
+            // Actualiza en BD (y procesa foto si existe)
+            $saved = ManageProfile::updateUserProfile($userId, $updateData, $photoFile);
+            if (!$saved) {
+                throw new RuntimeException('No se pudo actualizar el perfil en la base de datos.');
             }
-            $newRelPath = ManageProfile::storeProfilePhoto($userId, $tmp, $ext);
+
+            // Recargar datos para reflejar cambios
+            $userData = ManageProfile::getUserProfile($userId);
+            $birthForInput = normalizeDateForInput($userData['birth_date'] ?? '');
+            $currentPhotoRel = !empty($userData['photo_path']) ? $userData['photo_path'] : $defaultAvatarRel;
+            $currentPhotoUrl = urlFromDbPhotoPath($currentPhotoRel, $defaultAvatarRel);
+
+            $flash = ['success', 'Perfil actualizado correctamente.'];
+        } catch (Throwable $e) {
+            $flash = ['danger', 'No se pudo actualizar el perfil: ' . htmlspecialchars($e->getMessage())];
         }
-
-        // ACTUALIZACIÓN: Verificar que la actualización fue exitosa
-        $saved = ManageProfile::updateUserProfile($userId, $updateData, $newRelPath);
-
-        if (!$saved) {
-            throw new RuntimeException('No se pudo actualizar el perfil en la base de datos.');
-        }
-
-        // Si cambió la foto, borra la anterior (si es una ruta del directorio de usuarios)
-        if ($newRelPath && $oldRelPath && $oldRelPath !== $defaultAvatarRel) {
-            ManageProfile::deleteOldPhotoIfSafe($oldRelPath);
-        }
-
-        // Recargar datos
-        $userData = ManageProfile::getUserProfile($userId);
-        $birthForInput = normalizeDateForInput($userData['birth_date'] ?? '');
-        $currentPhotoRel = !empty($userData['photo_path']) ? $userData['photo_path'] : $defaultAvatarRel;
-        $currentPhotoUrl = urlFromDbPhotoPath($currentPhotoRel, $defaultAvatarRel);
-
-        $flash = ['success', 'Perfil actualizado correctamente.'];
-    } catch (Throwable $e) {
-        $flash = ['danger', 'No se pudo actualizar el perfil: ' . htmlspecialchars($e->getMessage())];
     }
-}
+
 
     // Cambiar contraseña
     if (isset($_POST['update_password'])) {
