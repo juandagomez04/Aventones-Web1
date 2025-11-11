@@ -1,0 +1,10 @@
+/* Tamaño controlado para la foto de perfil */
+.avatar {
+  width: 130px;              /* ancho fijo */
+  height: 130px;             /* alto fijo */
+  object-fit: cover;         /* recorta sin deformar */
+  border-radius: 50%;        /* forma circular */
+  border: 2px solid #ccc;    /* borde suave */
+  background-color: #f9f9f9; /* fondo neutro */
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+}
