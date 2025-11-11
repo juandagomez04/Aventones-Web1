@@ -110,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <hr>
         <nav>
             <a href="../rides/searchrides.php">Home</a> |
-            <a href="../myrides/myrides.php">Rides</a> |
+            <a href="../rides/searchrides.php">Rides</a> |
             <a href="../bookings/bookings.php">Bookings</a> |
             <a href="../profile/configuration.php">Settings</a> |
             <a href="login.php">Login</a> |
