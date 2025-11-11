@@ -186,7 +186,7 @@ $users = AdminActions::getUsers($roleFilter, $statusFilter);
                 <form method="POST">
                     <button type="submit" name="logout" value="true" class="logout-btn">Logout</button>
                 </form>
-                <a href="../profile/configuration.php" role="menuitem">Settings</a>
+                <a href="../profile/editprofile.php" role="menuitem">Profile</a>
             </div>
         </div>
     </div>

@@ -31,9 +31,14 @@ final class ManageBookings
             throw new RuntimeException("No hay asientos disponibles.");
         }
 
-        $st = $pdo->prepare("INSERT INTO bookings (ride_id, passenger_id, status) VALUES (?,?, 'pending')");
+        // Insert con fecha de creación
+        $st = $pdo->prepare("
+        INSERT INTO bookings (ride_id, passenger_id, status, created_at)
+        VALUES (?, ?, 'pending', NOW())
+        ");
         return $st->execute([$rideId, $passengerId]);
     }
+
 
     /** Obtener ride */
     public static function getRideById(int $rideId): ?array

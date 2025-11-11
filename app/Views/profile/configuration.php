@@ -67,7 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
               <button type="submit" name="logout" value="true" class="logout-btn">Logout</button>
             </form>
             <a href="../profile/editprofile.php">Profile</a>
-            <a href="../profile/configuration.php" class="active">Settings</a>
           </div>
         </div>
       </div>

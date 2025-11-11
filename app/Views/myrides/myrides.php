@@ -204,7 +204,6 @@ try {
                             <button type="submit" name="logout" value="true" class="logout-btn">Logout</button>
                         </form>
                         <a href="../profile/editprofile.php">Profile</a>
-                        <a href="../profile/configuration.php">Settings</a>
                     </div>
                 </div>
             </div>

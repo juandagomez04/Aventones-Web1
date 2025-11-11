@@ -1,183 +1,318 @@
 <?php
+session_start();
 require_once '../../Application/Services/Auth/login_user.php';
+require_once '../../Application/Services/Auth/manageprofile.php';
 
-// Procesar logout SIEMPRE al inicio
+/* ================================
+   Helpers (declarados una sola vez)
+   ================================ */
+if (!function_exists('normalizeDateForInput')) {
+    function normalizeDateForInput($v)
+    {
+        if (!$v)
+            return '';
+        $v = trim((string) $v);
+        if ($v === '0000-00-00' || $v === '0000-00-00 00:00:00')
+            return '';
+        $ts = @strtotime($v);
+        if ($ts === false)
+            return '';
+        return date('Y-m-d', $ts);
+    }
+}
+
+/**
+ * Recibe el path guardado en BD (ej. public/assets/img/users/archivo.png),
+ * valida en el filesystem, y devuelve la URL para el navegador.
+ */
+if (!function_exists('urlFromDbPhotoPath')) {
+    function urlFromDbPhotoPath(?string $dbPath, string $fallback = 'public/assets/img/avatar.png'): string
+    {
+        // Si no hay path en BD o está vacío, usar avatar por defecto
+        if (empty($dbPath) || trim($dbPath) === '') {
+            return '../../../' . ltrim($fallback, '/');
+        }
+
+        $rel = str_replace('\\', '/', $dbPath);
+        $rel = ltrim($rel, '/');
+
+        // Resuelve ruta absoluta en disco del proyecto
+        $baseAbs = realpath(__DIR__ . '/../../../') ?: (__DIR__ . '/../../../');
+        $abs = $baseAbs . '/' . $rel;
+
+        // Si el archivo existe, usar esa imagen
+        if (is_file($abs)) {
+            return '../../../' . $rel;
+        }
+
+        // Si no existe, usar el avatar por defecto
+        return '../../../' . ltrim($fallback, '/');
+    }
+}
+
+/* ================================
+   Logout y validación de sesión
+   ================================ */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     LoginUser::logout();
     header('Location: ../auth/login.php');
     exit;
 }
+
+if (!LoginUser::isLoggedIn()) {
+    header('Location: ../auth/login.php');
+    exit;
+}
+
+$userId = (int) $_SESSION['user_id'];
+$userData = [];
+$flash = null;
+
+/* ================================
+   Cargar perfil actual
+   ================================ */
+try {
+    $userData = ManageProfile::getUserProfile($userId);
+} catch (Throwable $e) {
+    $flash = ['danger', 'Error al cargar el perfil: ' . htmlspecialchars($e->getMessage())];
+}
+
+$birthForInput = normalizeDateForInput($userData['birth_date'] ?? '');
+$defaultAvatarRel = 'public/assets/img/avatar.png';
+$currentPhotoRel = !empty($userData['photo_path']) ? $userData['photo_path'] : $defaultAvatarRel;
+$currentPhotoUrl = urlFromDbPhotoPath($currentPhotoRel, $defaultAvatarRel);
+
+/* ================================
+   Manejo de POST (perfil / contraseña)
+   ================================ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Guardar cambios del perfil
+    // En la sección de manejo de POST en editprofile.php
+if (isset($_POST['update_profile'])) {
+    try {
+        $updateData = [
+            'first_name' => trim($_POST['first_name'] ?? ''),
+            'last_name' => trim($_POST['last_name'] ?? ''),
+            'national_id' => trim($_POST['national_id'] ?? ''),
+            'birth_date' => trim($_POST['birth_date'] ?? ''),
+            'email' => trim($_POST['email'] ?? ''),
+            'phone' => trim($_POST['phone'] ?? '')
+        ];
+
+        $oldRelPath = $userData['photo_path'] ?? $defaultAvatarRel;
+        $newRelPath = null;
+
+        // Manejo de foto
+        if (isset($_FILES['photo']) && ($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $tmp = $_FILES['photo']['tmp_name'];
+            $name = $_FILES['photo']['name'];
+            $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+            if (!in_array($ext, $allowed, true)) {
+                throw new RuntimeException('Formato de imagen no permitido. Usa JPG, PNG o WEBP.');
+            }
+            $newRelPath = ManageProfile::storeProfilePhoto($userId, $tmp, $ext);
+        }
+
+        // ACTUALIZACIÓN: Verificar que la actualización fue exitosa
+        $saved = ManageProfile::updateUserProfile($userId, $updateData, $newRelPath);
+
+        if (!$saved) {
+            throw new RuntimeException('No se pudo actualizar el perfil en la base de datos.');
+        }
+
+        // Si cambió la foto, borra la anterior (si es una ruta del directorio de usuarios)
+        if ($newRelPath && $oldRelPath && $oldRelPath !== $defaultAvatarRel) {
+            ManageProfile::deleteOldPhotoIfSafe($oldRelPath);
+        }
+
+        // Recargar datos
+        $userData = ManageProfile::getUserProfile($userId);
+        $birthForInput = normalizeDateForInput($userData['birth_date'] ?? '');
+        $currentPhotoRel = !empty($userData['photo_path']) ? $userData['photo_path'] : $defaultAvatarRel;
+        $currentPhotoUrl = urlFromDbPhotoPath($currentPhotoRel, $defaultAvatarRel);
+
+        $flash = ['success', 'Perfil actualizado correctamente.'];
+    } catch (Throwable $e) {
+        $flash = ['danger', 'No se pudo actualizar el perfil: ' . htmlspecialchars($e->getMessage())];
+    }
+}
+
+    // Cambiar contraseña
+    if (isset($_POST['update_password'])) {
+        $current = $_POST['current_password'] ?? '';
+        $new = $_POST['new_password'] ?? '';
+        $confirm = $_POST['confirm_password'] ?? '';
+
+        try {
+            if ($new === '' || $confirm === '') {
+                throw new RuntimeException('La nueva contraseña no puede estar vacía.');
+            }
+            if ($new !== $confirm) {
+                throw new RuntimeException('La confirmación no coincide.');
+            }
+            if (strlen($new) < 8) {
+                throw new RuntimeException('La nueva contraseña debe tener al menos 8 caracteres.');
+            }
+
+            ManageProfile::updatePassword($userId, $current, $new);
+            $flash = ['success', 'Contraseña actualizada correctamente.'];
+        } catch (Throwable $e) {
+            $flash = ['danger', 'No se pudo actualizar la contraseña: ' . htmlspecialchars($e->getMessage())];
+        }
+    }
+
+    // Función temporal para debugging - elimínala después de resolver el problema
+    function debugPhotoUpload()
+    {
+        error_log("=== DEBUG PHOTO UPLOAD ===");
+        error_log("FILES array: " . print_r($_FILES, true));
+        error_log("POST array: " . print_r($_POST, true));
+
+        if (isset($_FILES['photo'])) {
+            $photo = $_FILES['photo'];
+            error_log("Photo name: " . $photo['name']);
+            error_log("Photo tmp_name: " . $photo['tmp_name']);
+            error_log("Photo error: " . $photo['error']);
+            error_log("Photo size: " . $photo['size']);
+            error_log("File exists: " . (file_exists($photo['tmp_name']) ? 'YES' : 'NO'));
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
+    <title>Editar Perfil - AVENTONES</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Profile - AVENTONES</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../../../public/assets/css/base.css">
-    <link rel="stylesheet" href="../../../public/assets/css/home.css">
+    <link rel="stylesheet" href="../../../public/assets/css/profile.css">
 </head>
 
 <body>
-    <!-- Header with logo and site title -->
+    <!-- Header -->
     <div class="header">
         <img src="../../../public/assets/img/Icono.png" alt="Logo" class="logo">
         <h1 class="title">AVENTONES</h1>
     </div>
 
-    <!-- Top navigation menu -->
+    <!-- Menu -->
     <div class="menu-container">
         <div class="menu">
-            <!-- Left navigation links -->
             <nav class="left-menu">
                 <a href="../rides/searchrides.php">Home</a>
-                <a href="../myrides/myrides">Rides</a>
+                <a href="../rides/search_public_rides.php">Search</a>
                 <a href="../bookings/bookings.php">Bookings</a>
             </nav>
-
-            <!-- Centered search bar -->
-            <div class="center-search">
-                <input type="text" placeholder="Search..." class="search-bar">
-            </div>
-
-            <style>
-                .dropdown-menu button.logout-btn {
-                    background: none;
-                    border: none;
-                    width: 100%;
-                    text-align: left;
-                    padding: 15px;
-                    color: var(--color-text);
-                    cursor: pointer;
-                    font-size: inherit;
-                    font-family: inherit;
-                }
-
-                .dropdown-menu button.logout-btn:hover {
-                    background-color: var(--color-hover-bg);
-                }
-            </style>
-
-            <!-- Right-side user icon and dropdown menu -->
-            <div class="right-menu">
-                <div class="user-btn">
-                    <img src="../../../public/assets/img/avatar.png" alt="User" class="user-icon">
-                    <div class="dropdown-menu">
-                        <form method="POST">
-                            <button type="submit" name="logout" value="true" class="logout-btn">Logout</button>
-                        </form>
-                        <a href="../profile/editprofile.php">Profile</a>
-                        <a href="../profile/configuration.php">Settings</a>
-                    </div>
-                </div>
-            </div>
+            <form method="POST" class="right-menu">
+                <button class="btn btn-danger" name="logout" value="1">Logout</button>
+            </form>
         </div>
     </div>
 
-    <hr>
+    <div class="container">
+        <?php if ($flash): ?>
+            <div class="alert <?= htmlspecialchars($flash[0]) ?>"><?= htmlspecialchars($flash[1]) ?></div>
+        <?php endif; ?>
 
-    <!-- Page subtitle -->
-    <h2>Edit Profile</h2>
+        <div class="grid-2">
+            <!-- Perfil -->
+            <form class="card" method="POST" enctype="multipart/form-data">
+                <h2>Datos del perfil</h2>
+                <div style="display:flex; gap:16px; align-items:center; margin-bottom: 10px;">
+                    <img id="avatarPreview" class="avatar" src="<?= htmlspecialchars($currentPhotoUrl) ?>"
+                        onerror="this.onerror=null;this.src='../../../public/assets/img/avatar.png';" alt="Avatar">
+                    <div>
+                        <div class="field">
+                            <label for="photo">Foto</label>
+                            <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,.webp">
+                        </div>
+                        <small>Formatos: JPG, PNG o WEBP. Se guarda en <code>public/assets/img/users/</code></small>
+                    </div>
+                </div>
 
-    <!-- Profile edit form -->
-    <form class="form" action="../rides/searchrides.php" method="get">
+                <div class="form-row">
+                    <div class="field">
+                        <label for="first_name">Nombre</label>
+                        <input type="text" id="first_name" name="first_name" required
+                            value="<?= htmlspecialchars($userData['first_name'] ?? '') ?>">
+                    </div>
+                    <div class="field">
+                        <label for="last_name">Apellido</label>
+                        <input type="text" id="last_name" name="last_name" required
+                            value="<?= htmlspecialchars($userData['last_name'] ?? '') ?>">
+                    </div>
 
-        <!-- First and last name -->
-        <div class="row">
-            <div class="field">
-                <label for="fname">First Name</label>
-                <input type="text" id="fname" name="fname" value="Juanda" required>
-            </div>
-            <div class="field">
-                <label for="lname">Last Name</label>
-                <input type="text" id="lname" name="lname" value="Gómez" required>
-            </div>
+                    <div class="field">
+                        <label for="national_id">Cédula</label>
+                        <input type="text" id="national_id" name="national_id"
+                            value="<?= htmlspecialchars($userData['national_id'] ?? '') ?>">
+                    </div>
+                    <div class="field">
+                        <label for="birth_date">Fecha de nacimiento</label>
+                        <input type="date" id="birth_date" name="birth_date"
+                            value="<?= htmlspecialchars($birthForInput) ?>">
+                    </div>
+
+                    <div class="field">
+                        <label for="email">Correo</label>
+                        <input type="email" id="email" name="email" required
+                            value="<?= htmlspecialchars($userData['email'] ?? '') ?>">
+                    </div>
+                    <div class="field">
+                        <label for="phone">Teléfono</label>
+                        <input type="text" id="phone" name="phone"
+                            value="<?= htmlspecialchars($userData['phone'] ?? '') ?>">
+                    </div>
+
+                    <div class="field full actions">
+                        <button type="reset" class="btn btn-secondary">Restablecer</button>
+                        <button type="submit" class="btn btn-primary" name="update_profile" value="1">Guardar
+                            cambios</button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Contraseña -->
+            <form class="card" method="POST">
+                <h2>Actualizar contraseña</h2>
+                <div class="field">
+                    <label for="current_password">Contraseña actual</label>
+                    <input type="password" id="current_password" name="current_password" required>
+                </div>
+                <div class="field">
+                    <label for="new_password">Nueva contraseña</label>
+                    <input type="password" id="new_password" name="new_password" required>
+                </div>
+                <div class="field">
+                    <label for="confirm_password">Confirmar nueva contraseña</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                </div>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary" name="update_password" value="1">Cambiar
+                        contraseña</button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <div class="field">
-            <label for="photo">Photo</label>
-            <input type="file" id="photo" name="photo" accept="image/*">
-        </div>
-
-        <!-- Email address -->
-        <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" value="jdgomezcubillo2004@gmail.com" required>
-        </div>
-
-        <!-- Password and repeat password -->
-        <div class="row">
-            <div class="field">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <div class="field">
-                <label for="repeat">Repeat Password</label>
-                <input type="password" id="repeat" name="repeat" required>
-            </div>
-        </div>
-
-        <!-- Address -->
-        <div class="field">
-            <label for="address">Address</label>
-            <input type="text" id="address" name="address" value="Maracaná, Ciudad Quesada" required>
-        </div>
-
-        <!-- Country and state -->
-        <div class="row">
-            <div class="field">
-                <label for="country">Country</label>
-                <select id="country" name="country" required>
-                    <option value="" disabled selected>Select Country</option>
-                    <option value="CR">Costa Rica</option>
-                    <option value="MX">México</option>
-                </select>
-            </div>
-            <div class="field">
-                <label for="state">State</label>
-                <input type="text" id="state" name="state" value="Alajuela" required>
-            </div>
-        </div>
-
-        <!-- City and phone number -->
-        <div class="row">
-            <div class="field">
-                <label for="city">City</label>
-                <input type="text" id="city" name="city" value="Quesada" required>
-            </div>
-            <div class="field">
-                <label for="phone">Phone Number</label>
-                <input type="text" id="phone" name="phone" value="+506 70165004" required>
-            </div>
-        </div>
-
-        <!-- Form action buttons -->
-        <div class="form-actions">
-            <a class="cancel-link" onclick="window.history.back()">Cancel</a>
-            <button type="submit" class="submit-btn" onclick="window.history.back()">Save</button>
-        </div>
-    </form>
-
-    <!-- Footer with navigation links -->
-    <footer>
-        <hr>
-        <nav>
-            <a href="../rides/searchrides.php">Home</a> |
-            <a href="../myrides/myrides.php">Rides</a> |
-            <a href="../bookings/bookings.php">Bookings</a> |
-            <a href="../profile/configuration.php">Settings</a> |
-            <a href="../auth/login.php">Login</a> |
-            <a href="../auth/register_passenger.php">Register</a>
-        </nav>
-        <p>&copy; Aventones.com</p>
+    <footer class="footer">
+        <p>© <?= date('Y') ?> AVENTONES</p>
     </footer>
 
-    <script src="Scripts/home/profile.js"></script>
-
+    <script>
+        // Preview inmediata de foto nueva
+        document.getElementById('photo')?.addEventListener('change', (e) => {
+            const [file] = e.target.files || [];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            document.getElementById('avatarPreview').src = url;
+        });
+    </script>
 </body>
-
 
 </html>
